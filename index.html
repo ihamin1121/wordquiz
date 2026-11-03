@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JLPT N2 한자 스마트 플래시카드 퀴즈</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                        jp: ['Noto Sans JP', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            400: '#38bdf8',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+    </style>
+</head>
+<body class="bg-slate-100/70 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm">
+                    漢字
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-800 leading-tight">VocaQuiz <span class="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-semibold">N2</span></h1>
+                    <p class="text-xs text-slate-400">JLPT</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="round-badge" class="hidden text-xs font-bold px-3 py-1 bg-amber-100 text-amber-800 rounded-full">1회독 진행 중</span>
+                <span id="total-words-badge" class="text-xs font-medium bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">단어: <b id="nav-word-count">0</b>개</span>
+                <button id="clear-storage-btn" onclick="clearSavedData()" class="hidden text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg font-medium transition-all" title="저장된 기록 초기화">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-3xl w-full mx-auto p-4 flex flex-col">
+
+        <!-- RESUME PROMPT BANNER -->
+        <div id="resume-banner" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-2xl shadow-sm mb-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">이전에 학습하던 기록이 있습니다!</h3>
+                    <p id="resume-info-text" class="text-xs text-slate-500">1회독 진행 중 (1/30 단어)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <button onclick="discardAndNew()" class="flex-1 sm:flex-none text-xs px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition-all">
+                    새로 시작
+                </button>
+                <button onclick="resumeQuizSession()" class="flex-1 sm:flex-none text-xs px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-sm transition-all">
+                    이어서 학습하기
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 1: Input / Setup Tab -->
+        <div id="tab-input" class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-import text-brand-500"></i> 단어장 등록하기
+                    </h2>
+                    <button onclick="loadSampleVocab()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+                        ⚡ JLPT N2 샘플 단어 채우기
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+                    복사한 단어 목록을 붙여넣으세요. <br>
+                    규격: <code class="bg-brand-50 px-1.5 py-0.5 rounded text-brand-700 font-medium">한자 (발음) : 뜻</code> 또는 <code class="bg-brand-50 px-1.5 py-0.5 rounded text-brand-700 font-medium">한자 : 뜻</code>
+                </p>
+
+                <textarea id="raw-vocab-input" rows="8" class="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-200 focus:border-brand-500 text-sm font-jp transition-all outline-none resize-y" placeholder="예시:
+賛否 (さんぴ) : 찬부, 찬반
+情景 (じょうけい) : 정경
+声援 (せいえん) : 성원
+背骨 (せぼね) : 등골, 척추"></textarea>
+
+                <div class="mt-4 flex flex-wrap gap-2 justify-between items-center">
+                    <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-upload"></i> TXT/CSV 파일 불러오기
+                        <input type="file" id="file-input" accept=".txt,.csv" class="hidden" onchange="handleFileUpload(event)">
+                    </label>
+                    <button onclick="parseAndStart()" class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-play"></i> 학습 및 퀴즈 시작하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Word List -->
+            <div id="word-list-card" class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-slate-400"></i> 등록된 단어 목록 (<span id="parsed-count-badge">0</span>개)
+                    </h3>
+                    <button onclick="shuffleVocabList()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition-all">
+                        <i class="fa-solid fa-shuffle"></i> 순서 무작위 섞기
+                    </button>
+                </div>
+                <div id="word-list-container" class="max-h-60 overflow-y-auto space-y-2 pr-1"></div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: Flashcard Quiz Tab -->
+        <div id="tab-quiz" class="hidden flex-1 flex flex-col justify-between space-y-4">
+            
+            <!-- Progress Top Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-slate-400">남은 단어</span>
+                    <span class="text-sm font-extrabold text-brand-600"><span id="quiz-current-idx">1</span> / <span id="quiz-total-count">0</span></span>
+                </div>
+                <div class="w-1/3 bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div id="quiz-progress-bar" class="bg-brand-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <button onclick="exitQuiz()" class="text-xs font-medium text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-sm"></i> 종료
+                </button>
+            </div>
+
+            <!-- Flashcard Area -->
+            <div class="flex-1 flex flex-col items-center justify-center py-4">
+                <div onclick="flipCard()" class="w-full max-w-md aspect-[4/3] perspective-1000 cursor-pointer group">
+                    <div id="flashcard-element" class="relative w-full h-full duration-500 transform-style-3d transition-transform rounded-3xl shadow-md border border-slate-200 bg-white">
+                        
+                        <!-- CARD FRONT (Kanji ONLY) -->
+                        <div class="absolute inset-0 w-full h-full backface-hidden flex flex-col items-center justify-center p-6 bg-gradient-to-b from-white to-slate-50 rounded-3xl">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">터치하여 정답 확인</span>
+                            <div id="card-front-text" class="text-5xl sm:text-6xl font-bold text-slate-800 font-jp tracking-tight text-center">
+                                -
+                            </div>
+                        </div>
+
+                        <!-- CARD BACK (Soft Blue Background) -->
+                        <div class="absolute inset-0 w-full h-full backface-hidden rotate-y-180 flex flex-col items-center justify-between p-6 bg-brand-500 text-white rounded-3xl shadow-inner">
+                            
+                            <!-- 중앙 영역: 한자와 그 바로 위 발음 (완전한 중앙 정렬) -->
+                            <div class="flex-1 flex flex-col items-center justify-center w-full">
+                                <!-- 1. 발음 (한자 바로 위: 세미볼드 font-semibold / 간격 살짝 띄움 mb-2) -->
+                                <div id="card-back-reading" class="text-xl sm:text-2xl font-semibold font-jp text-white text-center tracking-wide mb-2">
+                                    -
+                                </div>
+
+                                <!-- 2. 한자 (가운데 중앙 배치 & font-bold 두께) -->
+                                <div id="card-back-kanji" class="text-5xl sm:text-6xl font-bold font-jp text-amber-200 text-center tracking-tight leading-tight">
+                                    -
+                                </div>
+                            </div>
+
+                            <!-- 3. 하단: 한국어 뜻 -->
+                            <div id="card-back-meaning" class="w-full text-base sm:text-lg font-bold text-brand-700 bg-white px-4 py-3 rounded-xl text-center leading-snug shadow-sm">
+                                -
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flashcard Action Buttons -->
+            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto w-full pt-2">
+                <button onclick="answerFlashcard(false)" class="py-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-2xl border border-rose-200/80 shadow-sm transition-all flex flex-col items-center justify-center gap-1 active:scale-95">
+                    <span class="text-lg"><i class="fa-solid fa-xmark"></i> 다시 보기</span>
+                    <span class="text-[10px] font-normal text-rose-500">안 외워짐 (다음 회독 포함)</span>
+                </button>
+                <button onclick="answerFlashcard(true)" class="py-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-2xl border border-emerald-200/80 shadow-sm transition-all flex flex-col items-center justify-center gap-1 active:scale-95">
+                    <span class="text-lg"><i class="fa-solid fa-check"></i> 외웠음!</span>
+                    <span class="text-[10px] font-normal text-emerald-600">완전히 암기 (목록 제외)</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- VIEW 3: Result Tab -->
+        <div id="tab-result" class="hidden space-y-6 my-auto">
+            <div class="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm text-center max-w-md mx-auto">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                    🎉
+                </div>
+                <h2 id="result-title" class="text-2xl font-extrabold text-slate-800 mb-2">1회독 완료!</h2>
+                <p id="result-desc" class="text-sm text-slate-500 mb-6">남아있는 미암기 단어만 모아서 다음 회독을 진행합니다.</p>
+
+                <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="p-2">
+                        <div class="text-xs text-slate-400 font-medium">외운 단어 (제외됨)</div>
+                        <div id="result-memorized" class="text-2xl font-black text-emerald-600">0</div>
+                    </div>
+                    <div class="p-2 border-l border-slate-200">
+                        <div class="text-xs text-slate-400 font-medium">못 외운 단어</div>
+                        <div id="result-remaining" class="text-2xl font-black text-rose-600">0</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <button id="next-round-btn" onclick="startNextRound()" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-sm transition-all">
+                        🚀 못 외운 단어로 다음 회독 시작하기
+                    </button>
+                    <button onclick="resetAllAndHome()" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all text-sm">
+                        🏠 처음 화면으로 돌아가기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2 z-50">
+        <i id="toast-icon" class="fa-solid fa-circle-info"></i>
+        <span id="toast-msg">알림 메세지</span>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // App State Variables
+        let vocabList = [];          // Original full parsed list
+        let activePool = [];         // Current round's pool
+        let currentRound = 1;        // Round counter
+        let currentIndex = 0;        // Index in activePool
+        let memorizedInRound = 0;    // Number of words marked as "learned" this round
+        let unmemorizedPool = [];    // Words to carry over to next round
+        let isFlipped = false;
+
+        const STORAGE_KEY_VOCAB = 'vocaquiz_vocab_list';
+        const STORAGE_KEY_PROGRESS = 'vocaquiz_progress_session';
+
+
+        window.onload = function() {
+            // Load saved vocab list from localStorage if available
+            const savedVocab = localStorage.getItem(STORAGE_KEY_VOCAB);
+            if (savedVocab) {
+                document.getElementById('raw-vocab-input').value = savedVocab;
+                parseVocab(true);
+            } else {
+                document.getElementById('raw-vocab-input').value = SAMPLE_VOCAB_TEXT;
+                parseVocab(true);
+            }
+
+            // Check if active progress session exists
+            checkSavedProgress();
+        };
+
+        function saveVocabToStorage(text) {
+            try {
+                localStorage.setItem(STORAGE_KEY_VOCAB, text);
+            } catch (e) {
+                console.error('LocalStorage save error:', e);
+            }
+        }
+
+        function saveProgressSession() {
+            const sessionData = {
+                vocabList: vocabList,
+                activePool: activePool,
+                currentRound: currentRound,
+                currentIndex: currentIndex,
+                memorizedInRound: memorizedInRound,
+                unmemorizedPool: unmemorizedPool,
+                timestamp: new Date().getTime()
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(sessionData));
+                document.getElementById('clear-storage-btn').classList.remove('hidden');
+            } catch (e) {
+                console.error('LocalStorage progress save error:', e);
+            }
+        }
+
+        function checkSavedProgress() {
+            const savedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
+            if (savedProgress) {
+                try {
+                    const session = JSON.parse(savedProgress);
+                    if (session && session.activePool && session.activePool.length > 0 && session.currentIndex < session.activePool.length) {
+                        document.getElementById('resume-banner').classList.remove('hidden');
+                        document.getElementById('resume-info-text').innerText = `${session.currentRound}회독 진행 중 (${session.currentIndex + 1}/${session.activePool.length}번째 단어)`;
+                        document.getElementById('clear-storage-btn').classList.remove('hidden');
+                    }
+                } catch (e) {
+                    console.error('Failed to parse saved progress session', e);
+                }
+            }
+        }
+
+        function resumeQuizSession() {
+            const savedProgress = localStorage.getItem(STORAGE_KEY_PROGRESS);
+            if (!savedProgress) return;
+
+            try {
+                const session = JSON.parse(savedProgress);
+                vocabList = session.vocabList || [];
+                activePool = session.activePool || [];
+                currentRound = session.currentRound || 1;
+                currentIndex = session.currentIndex || 0;
+                memorizedInRound = session.memorizedInRound || 0;
+                unmemorizedPool = session.unmemorizedPool || [];
+
+                document.getElementById('resume-banner').classList.add('hidden');
+                updateRoundBadge();
+                switchTab('quiz');
+                renderCurrentCard();
+                showToast('이전 공부 지점부터 이어서 시작합니다!', 'success');
+            } catch (e) {
+                showToast('저장된 데이터를 불러오는 중 오류가 발생했습니다.', 'warning');
+            }
+        }
+
+        function discardAndNew() {
+            localStorage.removeItem(STORAGE_KEY_PROGRESS);
+            document.getElementById('resume-banner').classList.add('hidden');
+            document.getElementById('clear-storage-btn').classList.add('hidden');
+            showToast('이전 진행 기록을 지웠습니다.', 'info');
+        }
+
+        function clearSavedData() {
+            if (confirm('저장된 단어 및 공부 진행 기록을 모두 지우시겠습니까?')) {
+                localStorage.removeItem(STORAGE_KEY_VOCAB);
+                localStorage.removeItem(STORAGE_KEY_PROGRESS);
+                document.getElementById('resume-banner').classList.add('hidden');
+                document.getElementById('clear-storage-btn').classList.add('hidden');
+                document.getElementById('raw-vocab-input').value = '';
+                vocabList = [];
+                document.getElementById('word-list-card').classList.add('hidden');
+                document.getElementById('nav-word-count').innerText = '0';
+                showToast('모든 저장 데이터가 초기화되었습니다.', 'info');
+            }
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('tab-input').classList.add('hidden');
+            document.getElementById('tab-quiz').classList.add('hidden');
+            document.getElementById('tab-result').classList.add('hidden');
+
+            if (tabName === 'input') document.getElementById('tab-input').classList.remove('hidden');
+            if (tabName === 'quiz') document.getElementById('tab-quiz').classList.remove('hidden');
+            if (tabName === 'result') document.getElementById('tab-result').classList.remove('hidden');
+        }
+
+        function loadSampleVocab() {
+            document.getElementById('raw-vocab-input').value = SAMPLE_VOCAB_TEXT;
+            parseVocab();
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                document.getElementById('raw-vocab-input').value = evt.target.result;
+                parseVocab();
+            };
+            reader.readAsText(file);
+        }
+
+        function parseVocab(silent = false) {
+            const text = document.getElementById('raw-vocab-input').value.trim();
+            if (!text) {
+                if (!silent) showToast('단어를 입력해주세요.', 'warning');
+                return false;
+            }
+
+            const lines = text.split(/\r?\n/);
+            const parsed = [];
+
+            lines.forEach((line, idx) => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+
+                const delimiterRegex = /[:=\-\t]/;
+                const match = trimmed.split(delimiterRegex);
+
+                if (match.length >= 2) {
+                    const rawWord = match[0].trim();
+                    const meaning = match.slice(1).join(' ').trim();
+
+                    let kanji = rawWord;
+                    let reading = "";
+
+                    const readingMatch = rawWord.match(/^(.*?)\s*[\(\（](.*?)[\)\）]$/);
+                    if (readingMatch) {
+                        kanji = readingMatch[1].trim();
+                        reading = readingMatch[2].trim();
+                    }
+
+                    if (kanji && meaning) {
+                        parsed.push({ id: idx, kanji, reading, meaning });
+                    }
+                }
+            });
+
+            if (parsed.length === 0) {
+                if (!silent) showToast('단어 형식이 올바르지 않습니다.', 'warning');
+                return false;
+            }
+
+            vocabList = parsed;
+            saveVocabToStorage(text);
+
+            document.getElementById('nav-word-count').innerText = vocabList.length;
+            document.getElementById('parsed-count-badge').innerText = vocabList.length;
+            document.getElementById('word-list-card').classList.remove('hidden');
+            renderWordList();
+
+            if (!silent) showToast(`${vocabList.length}개 단어가 준비되었습니다!`, 'success');
+            return true;
+        }
+
+        function renderWordList() {
+            const container = document.getElementById('word-list-container');
+            container.innerHTML = '';
+            vocabList.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 p-3 rounded-xl border border-slate-200/60 flex items-center justify-between text-xs";
+                card.innerHTML = `
+                    <div class="truncate">
+                        <span class="font-bold text-slate-800 font-jp">${escapeHtml(item.kanji)}</span>
+                        ${item.reading ? `<span class="text-brand-600 font-jp">(${escapeHtml(item.reading)})</span>` : ''}
+                        <span class="text-slate-400 mx-1">|</span>
+                        <span class="text-slate-600">${escapeHtml(item.meaning)}</span>
+                    </div>
+                    <span class="text-slate-300 font-mono text-[10px]">#${idx+1}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function shuffleVocabList() {
+            vocabList = shuffleArray(vocabList);
+            renderWordList();
+            showToast('단어 목록을 섞었습니다.', 'info');
+        }
+
+        function parseAndStart() {
+            if (!parseVocab()) return;
+
+            currentRound = 1;
+            activePool = shuffleArray([...vocabList]);
+            unmemorizedPool = [];
+            currentIndex = 0;
+            memorizedInRound = 0;
+
+            document.getElementById('resume-banner').classList.add('hidden');
+            updateRoundBadge();
+            saveProgressSession();
+            switchTab('quiz');
+            renderCurrentCard();
+        }
+
+        function updateRoundBadge() {
+            const badge = document.getElementById('round-badge');
+            badge.innerText = `${currentRound}회독 진행 중 (${activePool.length}단어)`;
+            badge.classList.remove('hidden');
+        }
+
+        function renderCurrentCard() {
+            if (currentIndex >= activePool.length) {
+                finishRound();
+                return;
+            }
+
+            const item = activePool[currentIndex];
+
+            // Progress Bar
+            document.getElementById('quiz-current-idx').innerText = currentIndex + 1;
+            document.getElementById('quiz-total-count').innerText = activePool.length;
+            const pct = (currentIndex / activePool.length) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${pct}%`;
+
+            // Reset Card Flip State
+            isFlipped = false;
+            document.getElementById('flashcard-element').classList.remove('rotate-y-180');
+
+            // Front: Kanji Only
+            document.getElementById('card-front-text').innerText = item.kanji;
+
+            // Back: Reading -> Kanji -> Meaning (괄호 자동 제거 처리)
+            const cleanReading = item.reading ? item.reading.replace(/^[\(\（]|\b[\)\）]$/g, '').trim() : '';
+            document.getElementById('card-back-reading').innerText = cleanReading;
+            document.getElementById('card-back-kanji').innerText = item.kanji;
+            document.getElementById('card-back-meaning').innerText = item.meaning;
+        }
+
+        function flipCard() {
+            isFlipped = !isFlipped;
+            const el = document.getElementById('flashcard-element');
+            if (isFlipped) {
+                el.classList.add('rotate-y-180');
+            } else {
+                el.classList.remove('rotate-y-180');
+            }
+        }
+
+        function answerFlashcard(isMemorized) {
+            const currentItem = activePool[currentIndex];
+
+            if (isMemorized) {
+                memorizedInRound++;
+            } else {
+                unmemorizedPool.push(currentItem);
+            }
+
+            currentIndex++;
+            saveProgressSession();
+            renderCurrentCard();
+        }
+
+        function finishRound() {
+            localStorage.removeItem(STORAGE_KEY_PROGRESS);
+            document.getElementById('clear-storage-btn').classList.add('hidden');
+
+            switchTab('result');
+
+            document.getElementById('result-title').innerText = `${currentRound}회독 완료!`;
+            document.getElementById('result-memorized').innerText = memorizedInRound;
+            document.getElementById('result-remaining').innerText = unmemorizedPool.length;
+
+            const nextBtn = document.getElementById('next-round-btn');
+            if (unmemorizedPool.length === 0) {
+                document.getElementById('result-desc').innerText = "👏 축하합니다! 모든 단어를 완전히 암기했습니다!";
+                nextBtn.classList.add('hidden');
+            } else {
+                document.getElementById('result-desc').innerText = `남아있는 미암기 단어 (${unmemorizedPool.length}개)만 모아서 ${currentRound + 1}회독을 시작합니다.`;
+                nextBtn.classList.remove('hidden');
+            }
+        }
+
+        function startNextRound() {
+            currentRound++;
+            activePool = shuffleArray([...unmemorizedPool]);
+            unmemorizedPool = [];
+            currentIndex = 0;
+            memorizedInRound = 0;
+
+            updateRoundBadge();
+            saveProgressSession();
+            switchTab('quiz');
+            renderCurrentCard();
+        }
+
+        function resetAllAndHome() {
+            localStorage.removeItem(STORAGE_KEY_PROGRESS);
+            document.getElementById('round-badge').classList.add('hidden');
+            switchTab('input');
+        }
+
+        function exitQuiz() {
+            if (confirm('학습을 종료하고 처음 화면으로 이동하시겠습니까?')) {
+                resetAllAndHome();
+            }
+        }
+
+        // Utility: Array Shuffle
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // Utility: Escape HTML
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Toast Notification System
+        let toastTimeout;
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = msg;
+
+            if (type === 'success') {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+            } else if (type === 'warning') {
+                toastIcon.className = "fa-solid fa-triangle-exclamation text-amber-400";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-blue-400";
+            }
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            const quizTab = document.getElementById('tab-quiz');
+            if (quizTab.classList.contains('hidden')) return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                flipCard();
+            } else if (e.code === 'ArrowLeft') {
+                answerFlashcard(false);
+            } else if (e.code === 'ArrowRight') {
+                answerFlashcard(true);
+            }
+        });
+    </script>
+</body>
+</html>
